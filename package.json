@@ -1,9 +1,14 @@
 {
   "name": "loc8r",
-  "version": "0.0.0",
+  "version": "0.0.1",
   "private": true,
   "scripts": {
-    "start": "node ./bin/www"
+    "start": "node ./bin/www",
+    "test": "istanbul cover _mocha $(find ./lib -name \"*.spec.js\" -not -path \"./node_modules/*\")"
+  },
+  "engines": {
+    "node": "-6.11.2",
+    "npm": "3.10.10"
   },
   "dependencies": {
     "cookie-parser": "~1.4.3",
