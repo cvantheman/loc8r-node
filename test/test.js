@@ -9,6 +9,8 @@ const assert = chai.assert;
 
 chai.use(chaiHttp);
 
+var mongoose = require('mongoose');
+
 describe('app.js', function () {
   describe('GET /invalid', function() {
     it('should deny get request to invalid endpoint', function(done) {
@@ -27,6 +29,7 @@ describe('app.js', function () {
     })
   })
 })
+
 describe('locations controller', function () {
   describe('GET /', function() {
     it('should allow get request w/ no params', function(done) {
@@ -106,3 +109,15 @@ describe('users route', function () {
     })
   })
 })
+
+//After all tests are finished drop database and close connection
+after(function(done){
+  if (mongoose.connection.db) {
+    mongoose.connection.db.dropDatabase(function(){
+      mongoose.connection.close(done);
+    });
+  } else {
+    console.log('Mongo DB not detected, there will be failing tests')
+    done();
+  }
+});
