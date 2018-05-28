@@ -127,13 +127,246 @@ describe('api locations controller', function () {
   
   // create
   describe('POST /api/locations', function() {
-    it('should allow post request w/ no params', function(done) {
+    it('should not allow post request w/ no params', function(done) {
       chai.request(app)
       .post('/api/locations')
       .end((err, res) => {              
         should.not.exist(err);
-        res.res.statusCode.should.eql(200);
-        res.body.should.eql({status:'success'});
+        res.res.statusCode.should.eql(400);
+        res.body.message.should.eql('Location validation failed: coords: Cast to Array failed for value "[ NaN, NaN ]" at path "coords", name: Path `name` is required., openingTimes.0.days: Path `days` is required., openingTimes.0.closed: Path `closed` is required., openingTimes.1.days: Path `days` is required., openingTimes.1.closed: Path `closed` is required.');
+        res.body.errors.name.should.eql(
+          { message: 'Path `name` is required.',
+            name: 'ValidatorError',
+            properties:
+            { message: 'Path `{PATH}` is required.',
+              type: 'required',
+              path: 'name' },
+            kind: 'required',
+            path: 'name',
+            '$isValidatorError': true });
+        done();
+      });
+    })
+
+    it('should return error if coords are empty', function(done) {
+      chai.request(app)
+      .post('/api/locations')
+      .send({
+        name: 'Corys Shop',
+      })
+      .end((err, res) => {              
+        should.not.exist(err);
+        res.res.statusCode.should.eql(400);
+        res.body.message.should.eql('Location validation failed: coords: Cast to Array failed for value \"[ NaN, NaN ]\" at path \"coords\", openingTimes.0.days: Path `days` is required., openingTimes.0.closed: Path `closed` is required., openingTimes.1.days: Path `days` is required., openingTimes.1.closed: Path `closed` is required.');
+        should.not.exist(res.body.errors.name);
+        res.body.errors.coords.should.eql({
+          message: 'Cast to Array failed for value "[ NaN, NaN ]" at path "coords"',
+          name: 'CastError',
+          stringValue: '"[ NaN, NaN ]"',
+          kind: 'Array',
+          value: [ null, null ],
+          path: 'coords',
+          reason: {
+            message: 'Cast to number failed for value "NaN" at path "coords"',
+            name: 'CastError',
+            stringValue: '"NaN"',
+            kind: 'number',
+            value: null,
+            path: 'coords'
+          }
+        });
+        done();
+      });
+    })
+
+    it('should return error if lat is empty', function(done) {
+      chai.request(app)
+      .post('/api/locations')
+      .send({
+        name: 'Corys Shop',
+        lng: 10,
+      })
+      .end((err, res) => {              
+        should.not.exist(err);
+        res.res.statusCode.should.eql(400);
+        res.body.message.should.eql('Location validation failed: coords: Cast to Array failed for value \"[ 10, NaN ]\" at path \"coords\", openingTimes.0.days: Path `days` is required., openingTimes.0.closed: Path `closed` is required., openingTimes.1.days: Path `days` is required., openingTimes.1.closed: Path `closed` is required.');
+        res.body.errors.coords.should.eql({
+          message: 'Cast to Array failed for value "[ 10, NaN ]" at path "coords"',
+          name: 'CastError',
+          stringValue: '"[ 10, NaN ]"',
+          kind: 'Array',
+          value: [ 10, null ],
+          path: 'coords',
+          reason: {
+            message: 'Cast to number failed for value "NaN" at path "coords"',
+            name: 'CastError',
+            stringValue: '"NaN"',
+            kind: 'number',
+            value: null,
+            path: 'coords'
+          }
+        });
+        done();
+      });
+    })
+
+
+    it('should return error if days1 is empty', function(done) {
+      chai.request(app)
+      .post('/api/locations')
+      .send({
+        name: 'Corys Shop',
+        lng: 10,
+        lat: 15,
+      })
+      .end((err, res) => {              
+        should.not.exist(err);
+        res.res.statusCode.should.eql(400);
+        should.not.exist(res.body.errors.coords);
+        res.body.message.should.eql('Location validation failed: openingTimes.0.days: Path `days` is required., openingTimes.0.closed: Path `closed` is required., openingTimes.1.days: Path `days` is required., openingTimes.1.closed: Path `closed` is required.');
+        res.body.errors['openingTimes.0.days'].should.eql({
+          message: 'Path `days` is required.',
+          name: 'ValidatorError',
+          properties: {
+            message: 'Path `{PATH}` is required.',
+            type: 'required',
+            path: 'days'
+          },
+          kind: 'required',
+          path: 'days',
+          '$isValidatorError': true 
+        });
+        done();
+      });
+    })
+
+
+    it('should return error if closed1 is empty', function(done) {
+      chai.request(app)
+      .post('/api/locations')
+      .send({
+        name: 'Corys Shop',
+        lng: 10,
+        lat: 15,
+        days1: 'Monday - Friday',
+      })
+      .end((err, res) => {              
+        should.not.exist(err);
+        should.not.exist(res.body.errors['openingTimes.0.days']);
+        res.res.statusCode.should.eql(400);
+        res.body.message.should.eql('Location validation failed: openingTimes.0.closed: Path `closed` is required., openingTimes.1.days: Path `days` is required., openingTimes.1.closed: Path `closed` is required.');
+        res.body.errors['openingTimes.0.closed'].should.eql({
+          message: 'Path `closed` is required.',
+          name: 'ValidatorError',
+          properties: {
+            message: 'Path `{PATH}` is required.',
+            type: 'required',
+            path: 'closed'
+          },
+          kind: 'required',
+          path: 'closed',
+          '$isValidatorError': true 
+        });
+        done();
+      });
+    })
+
+    it('should return error if days2 is empty', function(done) {
+      chai.request(app)
+      .post('/api/locations')
+      .send({
+        name: 'Corys Shop',
+        lng: 10,
+        lat: 15,
+        days1: 'Monday - Friday',
+        closed1: false,
+      })
+      .end((err, res) => {              
+        should.not.exist(err);
+        should.not.exist(res.body.errors['openingTimes.0.closed']);
+        res.res.statusCode.should.eql(400);
+        res.body.message.should.eql('Location validation failed: openingTimes.1.days: Path `days` is required., openingTimes.1.closed: Path `closed` is required.');
+        res.body.errors['openingTimes.1.days'].should.eql({
+          message: 'Path `days` is required.',
+          name: 'ValidatorError',
+          properties: {
+            message: 'Path `{PATH}` is required.',
+            type: 'required',
+            path: 'days'
+          },
+          kind: 'required',
+          path: 'days',
+          '$isValidatorError': true 
+        });
+        done();
+      });
+    })
+
+    it('should return error if closed2 is empty', function(done) {
+      chai.request(app)
+      .post('/api/locations')
+      .send({
+        name: 'Corys Shop',
+        lng: 10,
+        lat: 15,
+        days1: 'Monday - Friday',
+        closed1: false,
+        days2: 'Saturday - Sunday',
+      })
+      .end((err, res) => {              
+        should.not.exist(err);
+        should.not.exist(res.body.errors['openingTimes.1.days']);
+        res.res.statusCode.should.eql(400);
+        res.body.message.should.eql('Location validation failed: openingTimes.1.closed: Path `closed` is required.');
+        res.body.errors['openingTimes.1.closed'].should.eql({
+          message: 'Path `closed` is required.',
+          name: 'ValidatorError',
+          properties: {
+            message: 'Path `{PATH}` is required.',
+            type: 'required',
+            path: 'closed'
+          },
+          kind: 'required',
+          path: 'closed',
+          '$isValidatorError': true 
+        });
+        done();
+      });
+    })
+
+    it('should return successful response if all required params present', function(done) {
+      chai.request(app)
+      .post('/api/locations')
+      .send({
+        name: 'Corys Shop',
+        lng: 10,
+        lat: 15,
+        days1: 'Monday - Friday',
+        closed1: false,
+        days2: 'Saturday - Sunday',
+        closed2: true,
+      })
+      .end((err, res) => {              
+        should.not.exist(err);
+        should.not.exist(res.body.errors);
+        res.res.statusCode.should.eql(201);
+        res.body.should.match({
+          rating: 0,
+          facilities: null,
+          _id: /\w{24}/,
+          name: 'Corys Shop',
+          coords: [ 10, 15 ],
+          openingTimes:
+          [ 
+            { _id: /\w{24}/,
+              days: 'Monday - Friday',
+              closed: false },
+            { _id: /\w{24}/,
+              days: 'Saturday - Sunday',
+              closed: true } 
+          ],
+        reviews: [],
+        __v: 0 })
         done();
       });
     })
