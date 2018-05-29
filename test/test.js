@@ -10,6 +10,8 @@ const assert = chai.assert;
 chai.use(chaiHttp);
 
 var mongoose = require('mongoose');
+var locationid = null;
+var reviewid = null;
 
 describe('app.js', function () {
   describe('GET /invalid', function() {
@@ -367,6 +369,7 @@ describe('api locations controller', function () {
           ],
         reviews: [],
         __v: 0 })
+        locationid = res.body._id;
         done();
       });
     })
@@ -381,7 +384,7 @@ describe('api locations controller', function () {
         should.not.exist(err);
         res.res.statusCode.should.eql(200);
         res.body.should.match({
-              rating: 3,
+              rating: 5,
               facilities: [
                   "Hot drinks",
                   "Food",
@@ -473,8 +476,8 @@ describe('api locations controller', function () {
   describe('DELETE /api/locations/:locationid', function() {
     it('should allow delete request w/ no params', function(done) {
       chai.request(app)
-      .delete('/api/locations/5b0324e0fa2cafbcc02e8feb')
-      .end((err, res) => {              
+      .delete(`/api/locations/${locationid}`)
+      .end((err, res) => {
         should.not.exist(err);
         res.res.statusCode.should.eql(200);
         res.body.should.eql({status:'success'});
@@ -487,13 +490,48 @@ describe('api locations controller', function () {
 describe('api reviews controller', function () {
   // create
   describe('POST /api/locations/:locationid/reviews', function() {
-    it('should allow post request w/ no params', function(done) {
+    it('should not allow post request w/ no params', function(done) {
       chai.request(app)
       .post('/api/locations/5b0324e0fa2cafbcc02e8feb/reviews')
-      .end((err, res) => {              
+      .end((err, res) => {
+        console.log('res.body:', res.body)
         should.not.exist(err);
-        res.res.statusCode.should.eql(200);
-        res.body.should.eql({status:'success'});
+        res.res.statusCode.should.eql(400);
+        res.body.message.should.match(/Location validation failed: reviews.\d.rating: Path `rating` is required./);
+        res.body.errors['reviews.1.rating'].should.eql(
+          {
+            message: 'Path `rating` is required.',
+            name: 'ValidatorError',
+            properties: {
+              message: 'Path `{PATH}` is required.',
+              type: 'required',
+              path: 'rating'
+            },
+            kind: 'required',
+            path: 'rating',
+            $isValidatorError: true
+          }
+        );
+        done();
+      });
+    })
+
+    it('should successfully create review', function(done) {
+      chai.request(app)
+      .post('/api/locations/5b0324e0fa2cafbcc02e8feb/reviews')
+      .send({
+        rating: 5
+      })
+      .end((err, res) => {
+        console.log('res.body:', res.body)
+        should.not.exist(err);
+        res.res.statusCode.should.eql(201);
+        res.body.should.match({
+          _id: /\w{24}/,
+          rating: 5,
+          createdOn: /\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z/
+        });
+        reviewid = res.body._id;
         done();
       });
     })
@@ -556,7 +594,7 @@ describe('api reviews controller', function () {
   describe('PUT /api/locations/:locationid/reviews/:reviewid', function() {
     it('should allow put request w/ no params', function(done) {
       chai.request(app)
-      .put('/api/locations/5b0324e0fa2cafbcc02e8feb/reviews/5b0324f4fa2cafbcc02e8fec')
+      .put(`/api/locations/5b0324e0fa2cafbcc02e8feb/reviews/${reviewid}`)
       .end((err, res) => {              
         should.not.exist(err);
         res.res.statusCode.should.eql(200);
@@ -565,16 +603,31 @@ describe('api reviews controller', function () {
       });
     })
   })
-  
+
   // delete
   describe('DELETE /api/locations/:locationid/reviews/:reviewid', function() {
     it('should allow delete request w/ no params', function(done) {
       chai.request(app)
-      .delete('/api/locations/5b0324e0fa2cafbcc02e8feb/reviews/5b0324f4fa2cafbcc02e8fec')
+      .delete('/api/locations/5b0324e0fa2cafbcc02e8feb/reviews/1')
       .end((err, res) => {              
         should.not.exist(err);
-        res.res.statusCode.should.eql(200);
-        res.body.should.eql({status:'success'});
+        res.res.statusCode.should.eql(404);
+        res.body.should.eql({
+          message: 'reviewid not found'
+        });
+        done();
+      });
+    })
+  })
+
+  describe('DELETE /api/locations/:locationid/reviews/:reviewid', function() {
+    it('should allow delete request w/ no params', function(done) {
+      chai.request(app)
+      .delete(`/api/locations/5b0324e0fa2cafbcc02e8feb/reviews/${reviewid}`)
+      .end((err, res) => {              
+        should.not.exist(err);
+        res.res.statusCode.should.eql(204);
+        res.body.should.eql({});
         done();
       });
     })
